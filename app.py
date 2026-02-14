@@ -144,5 +144,3 @@ elif page == "Featured Creators":
     except Exception as e:
         st.error(f"Database Error: {e}")
         st.info("If this is a new DB, ensure you created the 'featured_creators' table first.")
-
-    st.info("💎 **Boost Your Reach:** Contact `jktechservices@ybl` to be featured.")
