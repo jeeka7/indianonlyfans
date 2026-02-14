@@ -27,7 +27,6 @@ def amount_to_words(number):
 
 # --- APP INTERFACE ---
 st.title("🇮🇳 Creator Earnings Calculator")
-st.markdown("Professional revenue estimation with high-visibility financial reporting.")
 
 # 1. Creator Details Section (Optional)
 st.subheader("Profile Information (Optional)")
@@ -54,49 +53,20 @@ gross_monthly = subscribers * sub_charge
 net_monthly = gross_monthly * (1 - (platform_fee / 100))
 annual_income = net_monthly * 12
 
-# --- HIGHLIGHTED RESULTS SECTION ---
+# --- UI HIGHLIGHTED BOXES ---
 st.divider()
-
-# Custom CSS for the colored boxes
 st.markdown("""
 <style>
-    .monthly-box {
-        background-color: #e6f4ea;
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #34a853;
-        margin-bottom: 20px;
-    }
-    .annual-box {
-        background-color: #e8f0fe;
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #4285f4;
-        margin-bottom: 20px;
-    }
+    .monthly-box { background-color: #e6f4ea; padding: 20px; border-radius: 10px; border-left: 5px solid #34a853; margin-bottom: 20px; }
+    .annual-box { background-color: #e8f0fe; padding: 20px; border-radius: 10px; border-left: 5px solid #4285f4; margin-bottom: 20px; }
     .box-label { font-size: 14px; color: #555; font-weight: bold; margin-bottom: 5px; }
     .box-value { font-size: 32px; color: #000; font-weight: 800; }
     .box-words { font-size: 12px; color: #666; font-style: italic; }
 </style>
 """, unsafe_allow_html=True)
 
-# Monthly Highlight (Green)
-st.markdown(f"""
-<div class="monthly-box">
-    <div class="box-label">ESTIMATED NET MONTHLY INCOME</div>
-    <div class="box-value">₹ {format_indian_currency(net_monthly)}</div>
-    <div class="box-words">{amount_to_words(net_monthly)}</div>
-</div>
-""", unsafe_allow_html=True)
-
-# Annual Highlight (Blue)
-st.markdown(f"""
-<div class="annual-box">
-    <div class="box-label">ESTIMATED ANNUAL NET INCOME</div>
-    <div class="box-value">₹ {format_indian_currency(annual_income)}</div>
-    <div class="box-words">{amount_to_words(annual_income)}</div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(f'<div class="monthly-box"><div class="box-label">MONTHLY NET</div><div class="box-value">₹ {format_indian_currency(net_monthly)}</div><div class="box-words">{amount_to_words(net_monthly)}</div></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="annual-box"><div class="box-label">ANNUAL NET</div><div class="box-value">₹ {format_indian_currency(annual_income)}</div><div class="box-words">{amount_to_words(annual_income)}</div></div>', unsafe_allow_html=True)
 
 # --- PDF GENERATION FUNCTION ---
 def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
@@ -104,72 +74,73 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
     pdf.add_page()
     
     # Header
-    pdf.set_font("Helvetica", "B", 20)
-    pdf.cell(0, 15, "EARNINGS ESTIMATION REPORT", ln=True, align="C")
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.set_text_color(40, 40, 40)
+    pdf.cell(0, 20, "EARNINGS ESTIMATION REPORT", ln=True, align="C")
     
-    # Creator Info
-    pdf.set_font("Helvetica", "", 11)
-    pdf.ln(5)
-    pdf.cell(0, 8, f"Creator Name: {name}", ln=True)
-    pdf.cell(0, 8, f"Username: {user}", ln=True)
+    # Profile Info
+    pdf.set_font("Helvetica", "", 12)
+    pdf.cell(0, 10, f"Creator: {name} ({user})", ln=True)
+    pdf.set_draw_color(200, 200, 200)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(10)
     
-    # Table Data
-    pdf.set_font("Helvetica", "B", 11)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(90, 10, "Description", border=1, fill=True)
-    pdf.cell(95, 10, "Amount/Value", border=1, fill=True, ln=True)
+    # Detailed Breakdown Table
+    pdf.set_font("Helvetica", "B", 12)
+    pdf.set_fill_color(245, 245, 245)
+    pdf.cell(90, 10, "Component", border=1, fill=True)
+    pdf.cell(90, 10, "Value", border=1, fill=True, ln=True)
     
-    pdf.set_font("Helvetica", "", 10)
-    data = [
-        ("Total Active Subscribers", f"{subs:,}"),
+    pdf.set_font("Helvetica", "", 12)
+    items = [
+        ("Subscribers", f"{subs:,}"),
         ("Subscription Price", f"Rs. {charge}"),
-        ("Platform Fee Deduction", f"{fee}%"),
-        ("Net Monthly Take-home", f"Rs. {format_indian_currency(m_net)}"),
-        ("Estimated Annual Income", f"Rs. {format_indian_currency(y_net)}")
+        ("Platform Fee", f"{fee}%")
     ]
-    
-    for label, val in data:
+    for label, val in items:
         pdf.cell(90, 10, label, border=1)
-        pdf.cell(95, 10, val, border=1, ln=True)
+        pdf.cell(90, 10, val, border=1, ln=True)
     
-    # Word Representation
+    pdf.ln(15)
+
+    # --- HIGHLIGHTED PDF SECTIONS ---
+    # Monthly Highlight (Green Box)
+    pdf.set_fill_color(230, 244, 234) # Light Green
+    pdf.set_text_color(52, 168, 83)   # Green Text
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 12, "  ESTIMATED NET MONTHLY INCOME", ln=True, fill=True)
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.cell(0, 18, f"  Rs. {format_indian_currency(m_net)}", ln=True, fill=True)
+    pdf.set_font("Helvetica", "I", 10)
+    pdf.cell(0, 10, f"  ({amount_to_words(m_net)})", ln=True, fill=True)
+    
     pdf.ln(10)
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Monthly Income (In Words):", ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    pdf.multi_cell(0, 8, amount_to_words(m_net))
     
-    pdf.ln(5)
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "Annual Income (In Words):", ln=True)
-    pdf.set_font("Helvetica", "", 10)
-    pdf.multi_cell(0, 8, amount_to_words(y_net))
-    
+    # Annual Highlight (Blue Box)
+    pdf.set_fill_color(232, 240, 254) # Light Blue
+    pdf.set_text_color(66, 133, 244)  # Blue Text
+    pdf.set_font("Helvetica", "B", 14)
+    pdf.cell(0, 12, "  ESTIMATED ANNUAL NET INCOME", ln=True, fill=True)
+    pdf.set_font("Helvetica", "B", 24)
+    pdf.cell(0, 18, f"  Rs. {format_indian_currency(y_net)}", ln=True, fill=True)
+    pdf.set_font("Helvetica", "I", 10)
+    pdf.cell(0, 10, f"  ({amount_to_words(y_net)})", ln=True, fill=True)
+
     # Footer
     pdf.set_y(-25)
     pdf.set_font("Helvetica", "I", 8)
-    pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 10, "Generated via Creator Earnings Calc - For Information Purposes Only", align="C")
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, "Generated via Indian Creator Earnings Calculator. For estimation only.", align="C")
     
     return bytes(pdf.output())
 
 # --- DOWNLOAD LOGIC ---
 st.divider()
-if st.button("Prepare Final Report"):
-    with st.spinner("Processing..."):
-        pdf_data = generate_pdf_bytes(
-            creator_name, creator_user, subscribers, 
-            sub_charge, platform_fee, net_monthly, annual_income
-        )
+if st.button("Prepare Professional PDF Report"):
+    with st.spinner("Styling your Report..."):
+        pdf_data = generate_pdf_bytes(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
         st.session_state['pdf_report'] = pdf_data
-        st.success(f"✅ Report Ready for {creator_name}!")
+        st.success("✅ Your high-visibility report is ready!")
 
 if 'pdf_report' in st.session_state:
-    st.download_button(
-        label="📩 Download Report PDF",
-        data=st.session_state['pdf_report'],
-        file_name=f"{creator_name}_Earnings_Report.pdf",
-        mime="application/pdf"
-    )
+    st.download_button(label="📩 Download High-Visibility PDF", data=st.session_state['pdf_report'], file_name=f"{creator_name}_Earnings_Statement.pdf", mime="application/pdf")
