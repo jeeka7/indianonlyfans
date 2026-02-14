@@ -20,7 +20,6 @@ def format_indian_currency(number):
 def amount_to_words(number):
     """Converts a number to Indian English words (Lakhs/Crores)."""
     try:
-        # num2words with en_IN handles Lakhs/Crores correctly
         words = num2words(int(number), lang='en_IN').title()
         return f"{words} Rupees Only"
     except Exception:
@@ -28,15 +27,19 @@ def amount_to_words(number):
 
 # --- APP INTERFACE ---
 st.title("🇮🇳 Creator Earnings Calculator")
-st.markdown("Professional revenue estimation with Indian numbering and word conversion.")
+st.markdown("Calculate potential earnings with Indian numbering and automated reports.")
 
-# 1. Creator Details Section
-st.subheader("Profile Information")
+# 1. Creator Details Section (Optional)
+st.subheader("Profile Information (Optional)")
 c1, c2 = st.columns(2)
 with c1:
-    creator_name = st.text_input("Full Name", placeholder="e.g. Jeeka Krishna")
+    raw_name = st.text_input("Full Name", placeholder="Default: XYZ")
 with c2:
-    creator_user = st.text_input("Platform Username", placeholder="e.g. @jk_analytics")
+    raw_user = st.text_input("Platform Username", placeholder="Default: XYZ")
+
+# Handling Defaults
+creator_name = raw_name if raw_name.strip() != "" else "XYZ"
+creator_user = raw_user if raw_user.strip() != "" else "XYZ"
 
 # 2. Earnings Inputs
 st.divider()
@@ -103,7 +106,7 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
         pdf.cell(90, 10, label, border=1)
         pdf.cell(95, 10, val, border=1, ln=True)
     
-    # Word Representation in PDF
+    # Word Representation
     pdf.ln(10)
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "Monthly Income (In Words):", ln=True)
@@ -120,23 +123,20 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
     pdf.set_y(-25)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(100, 100, 100)
-    pdf.cell(0, 10, "Generated via Influencer Earnings Calc - For Information Purposes Only", align="C")
+    pdf.cell(0, 10, "Generated via Creator Earnings Calc - For Information Purposes Only", align="C")
     
     return bytes(pdf.output())
 
 # --- DOWNLOAD LOGIC ---
 st.divider()
 if st.button("Prepare Final Report"):
-    if creator_name:
-        with st.spinner("Processing..."):
-            pdf_data = generate_pdf_bytes(
-                creator_name, creator_user, subscribers, 
-                sub_charge, platform_fee, net_monthly, annual_income
-            )
-            st.session_state['pdf_report'] = pdf_data
-            st.success("✅ Report Ready!")
-    else:
-        st.error("Enter Creator Name.")
+    with st.spinner("Processing..."):
+        pdf_data = generate_pdf_bytes(
+            creator_name, creator_user, subscribers, 
+            sub_charge, platform_fee, net_monthly, annual_income
+        )
+        st.session_state['pdf_report'] = pdf_data
+        st.success(f"✅ Report Ready for {creator_name}!")
 
 if 'pdf_report' in st.session_state:
     st.download_button(
