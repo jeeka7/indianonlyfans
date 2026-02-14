@@ -43,52 +43,31 @@ m_col1.metric("Gross Monthly Revenue", f"₹{int(gross_monthly):,}")
 m_col2.metric("Net Monthly Take-home", f"₹{int(net_monthly):,}")
 
 # --- PDF GENERATION LOGIC ---
+# --- UPDATED PDF GENERATION LOGIC ---
 def generate_pdf(name, username, subs, charge, fee, monthly, yearly):
     pdf = FPDF()
     pdf.add_page()
     
-    # Header
-    pdf.set_font("Helvetica", 'B', 20)
-    pdf.cell(0, 10, "Creator Earnings Report", ln=True, align='C')
-    pdf.set_font("Helvetica", '', 10)
-    pdf.cell(0, 10, f"Generated on: {datetime.date.today()}", ln=True, align='C')
-    pdf.ln(10)
+    # ... (Keep your existing PDF styling code here) ...
     
-    # Content
-    pdf.set_font("Helvetica", 'B', 14)
-    pdf.cell(0, 10, f"Profile: {name} ({username})", ln=True)
-    pdf.set_font("Helvetica", '', 12)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(5)
-    
-    data = [
-        ["Total Subscribers", f"{subs:,}"],
-        ["Subscription Price", f"Rs. {charge}"],
-        ["Platform Fee", f"{fee}%"],
-        ["Net Monthly Income", f"Rs. {int(monthly):,}"],
-        ["Estimated Yearly Income", f"Rs. {int(yearly):,}"]
-    ]
-    
-    for item in data:
-        pdf.cell(90, 10, item[0], border=0)
-        pdf.cell(90, 10, item[1], border=0, ln=True)
-    
-    pdf.ln(20)
-    pdf.set_font("Helvetica", 'I', 10)
-    pdf.multi_cell(0, 10, "Note: This report is an estimate based on provided figures and standard platform commissions in India.")
-    
-    return pdf.output()
+    # IMPORTANT: Use output() to get the content
+    # For fpdf2, output() with no arguments returns a bytearray/string 
+    # Wrap it in bytes() to ensure Streamlit accepts it
+    return bytes(pdf.output()) 
 
-# --- DOWNLOAD BUTTON ---
+# --- UPDATED DOWNLOAD BUTTON ---
 st.divider()
 if st.button("Prepare Report PDF"):
     if not creator_name:
         st.error("Please enter a Creator Name first.")
     else:
-        pdf_bytes = generate_pdf(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
+        # 1. Generate the bytes
+        pdf_data = generate_pdf(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
+        
+        # 2. Pass those bytes to the download button
         st.download_button(
             label="Click here to Download PDF",
-            data=pdf_bytes,
+            data=pdf_data,
             file_name=f"{creator_name}_earnings_report.pdf",
             mime="application/pdf"
         )
