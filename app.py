@@ -1,8 +1,21 @@
 import streamlit as st
 from fpdf import FPDF
+import re
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Creator Earnings Calc", page_icon="💰", layout="centered")
+
+# --- INDIAN CURRENCY FORMATTER ---
+def format_indian_currency(number):
+    """Formats a number into the Indian numbering system (Lakhs/Crores)."""
+    s = str(int(number))
+    if len(s) <= 3:
+        return s
+    last_three = s[-3:]
+    remaining = s[:-3]
+    # Add commas every 2 digits for the remaining part (Lakhs, Crores, etc.)
+    remaining = re.sub(r'(\d+?)(?=(\d{2})+$)', r'\1,', remaining)
+    return f"{remaining},{last_three}"
 
 # --- APP INTERFACE ---
 st.title("🇮🇳 Creator Earnings Calculator")
@@ -32,12 +45,15 @@ annual_income = net_monthly * 12
 
 # --- DISPLAY METRICS ---
 st.divider()
-# Big metric for Annual Income as requested
-st.metric(label="📊 ESTIMATED ANNUAL NET INCOME", value=f"₹{int(annual_income):,}")
+# Big metric for Annual Income with Indian Formatting
+st.metric(
+    label="📊 ESTIMATED ANNUAL NET INCOME", 
+    value=f"₹{format_indian_currency(annual_income)}"
+)
 
 m1, m2 = st.columns(2)
-m1.metric("Gross Monthly", f"₹{int(gross_monthly):,}")
-m2.metric("Net Monthly", f"₹{int(net_monthly):,}")
+m1.metric("Gross Monthly", f"₹{format_indian_currency(gross_monthly)}")
+m2.metric("Net Monthly", f"₹{format_indian_currency(net_monthly)}")
 
 # --- PDF GENERATION FUNCTION ---
 def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
@@ -66,7 +82,7 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
         ("Total Active Subscribers", f"{subs:,}"),
         ("Subscription Price", f"Rs. {charge}"),
         ("Platform Fee Deduction", f"{fee}%"),
-        ("Net Monthly Take-home", f"Rs. {int(m_net):,}"),
+        ("Net Monthly Take-home", f"Rs. {format_indian_currency(m_net)}"),
     ]
     
     for label, val in data:
@@ -77,7 +93,7 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
     pdf.ln(10)
     pdf.set_font("Helvetica", "B", 16)
     pdf.set_text_color(0, 102, 204) # Professional Blue
-    pdf.cell(0, 10, f"Estimated Annual Income: Rs. {int(y_net):,}", ln=True)
+    pdf.cell(0, 10, f"Estimated Annual Income: Rs. {format_indian_currency(y_net)}", ln=True)
     
     # Footer
     pdf.set_y(-30)
@@ -91,7 +107,6 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
 st.divider()
 st.subheader("Generate Report")
 
-# Step 1: Create the PDF and store in Session State
 if st.button("Calculate and Prepare PDF"):
     if creator_name:
         with st.spinner("Generating Report..."):
@@ -104,7 +119,6 @@ if st.button("Calculate and Prepare PDF"):
     else:
         st.error("Please enter a Creator Name to generate the report.")
 
-# Step 2: Show the Download Button only if data exists
 if 'pdf_report' in st.session_state:
     st.download_button(
         label="📩 Download PDF Report",
