@@ -1,30 +1,26 @@
 import streamlit as st
 from fpdf import FPDF
-import datetime
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Creator Earnings Calc", page_icon="💰")
 
 # --- APP INTERFACE ---
 st.title("🇮🇳 Creator Earnings Calculator")
-st.write("Professional revenue estimation for Indian content creators.")
 
-# Creator Details Section
-st.subheader("Personal Details")
-col_a, col_b = st.columns(2)
-with col_a:
-    creator_name = st.text_input("Creator Name", placeholder="e.g. Priya Sharma")
-with col_b:
-    creator_user = st.text_input("Platform Username", placeholder="e.g. @priya_creations")
+# 1. Creator Details
+st.subheader("Profile Information")
+c1, c2 = st.columns(2)
+with c1:
+    creator_name = st.text_input("Name of the Creator", placeholder="e.g. Ananya Rao")
+with c2:
+    creator_user = st.text_input("Username", placeholder="e.g. @ananya_creations")
 
+# 2. Earnings Inputs
 st.divider()
-
-# Input Section
 col1, col2 = st.columns(2)
 with col1:
-    subscribers = st.number_input("Current Subscribers", min_value=0, value=100, step=10)
-    sub_charge = st.number_input("Monthly Charge (₹)", min_value=0, value=290, step=10)
-
+    subscribers = st.number_input("Total Subscribers", min_value=0, value=100)
+    sub_charge = st.number_input("Monthly Charge (₹)", min_value=0, value=290)
 with col2:
     platform_fee = st.slider("Platform Commission (%)", 0, 50, 20)
 
@@ -33,41 +29,57 @@ gross_monthly = subscribers * sub_charge
 net_monthly = gross_monthly * (1 - (platform_fee / 100))
 annual_income = net_monthly * 12
 
-# --- DISPLAY METRICS ---
-st.subheader("Earnings Overview")
-# Highlighting Annual Income as requested
-st.metric(label="Estimated Annual Net Income", value=f"₹{int(annual_income):,}")
+# --- DISPLAY BIG METRIC ---
+st.divider()
+st.metric(label="📊 TOTAL ESTIMATED ANNUAL INCOME", value=f"₹{int(annual_income):,}")
 
-m_col1, m_col2 = st.columns(2)
-m_col1.metric("Gross Monthly Revenue", f"₹{int(gross_monthly):,}")
-m_col2.metric("Net Monthly Take-home", f"₹{int(net_monthly):,}")
-
-# --- PDF GENERATION LOGIC ---
-# --- UPDATED PDF GENERATION LOGIC ---
-def generate_pdf(name, username, subs, charge, fee, monthly, yearly):
+# --- PDF GENERATION (FIXED FOR FPDF2) ---
+def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Helvetica", "B", 22)
+    pdf.cell(0, 20, "EARNINGS REPORT", ln=True, align="C")
     
-    # ... (Keep your existing PDF styling code here) ...
+    pdf.set_font("Helvetica", "", 14)
+    pdf.ln(10)
+    pdf.cell(0, 10, f"Creator: {name} ({user})", ln=True)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+    pdf.ln(10)
     
-    # IMPORTANT: Use output() to get the content
-    # For fpdf2, output() with no arguments returns a bytearray/string 
-    # Wrap it in bytes() to ensure Streamlit accepts it
-    return bytes(pdf.output()) 
+    # Report Body
+    pdf.cell(100, 10, "Total Subscribers:", 0)
+    pdf.cell(0, 10, f"{subs:,}", 0, ln=True)
+    
+    pdf.cell(100, 10, "Subscription Price:", 0)
+    pdf.cell(0, 10, f"Rs. {charge}", 0, ln=True)
+    
+    pdf.cell(100, 10, "Platform Fee:", 0)
+    pdf.cell(0, 10, f"{fee}%", 0, ln=True)
+    
+    pdf.ln(10)
+    pdf.set_font("Helvetica", "B", 16)
+    pdf.cell(100, 10, "Net Monthly Income:", 0)
+    pdf.cell(0, 10, f"Rs. {int(m_net):,}", 0, ln=True)
+    
+    pdf.set_text_color(30, 144, 255) # Blue for the big number
+    pdf.cell(100, 10, "ESTIMATED ANNUAL INCOME:", 0)
+    pdf.cell(0, 10, f"Rs. {int(y_net):,}", 0, ln=True)
+    
+    # Return raw bytes
+    return pdf.output()
 
-# --- UPDATED DOWNLOAD BUTTON ---
-st.divider()
-if st.button("Prepare Report PDF"):
-    if not creator_name:
-        st.error("Please enter a Creator Name first.")
-    else:
-        # 1. Generate the bytes
-        pdf_data = generate_pdf(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
+# --- DOWNLOAD LOGIC ---
+st.write("### Generate Download")
+if st.button("Generate Final Report"):
+    if creator_name:
+        report_bytes = generate_pdf_bytes(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
         
-        # 2. Pass those bytes to the download button
+        # We use a unique key to ensure Streamlit handles the state correctly
         st.download_button(
-            label="Click here to Download PDF",
-            data=pdf_data,
-            file_name=f"{creator_name}_earnings_report.pdf",
+            label="📩 Download PDF Report",
+            data=report_bytes,
+            file_name=f"{creator_name}_Earnings.pdf",
             mime="application/pdf"
         )
+    else:
+        st.warning("Please enter a name to generate the report.")
