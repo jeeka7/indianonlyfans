@@ -2,145 +2,136 @@ import streamlit as st
 from fpdf import FPDF
 from num2words import num2words
 import re
+import libsql_client
 
-# --- PAGE CONFIG ---
-st.set_page_config(page_title="Creator Earnings Calc", page_icon="💰", layout="centered")
+# --- DATABASE CONNECTION ---
+def get_db_client():
+    # These should be set in Streamlit Secrets
+    url = st.secrets["TURSO_DATABASE_URL"]
+    token = st.secrets["TURSO_AUTH_TOKEN"]
+    return libsql_client.create_client_sync(url=url, auth_token=token)
 
-# --- HELPER FUNCTIONS ---
 def format_indian_currency(number):
-    """Formats a number into the Indian numbering system (Lakhs/Crores)."""
     s = str(int(number))
-    if len(s) <= 3:
-        return s
+    if len(s) <= 3: return s
     last_three = s[-3:]
     remaining = s[:-3]
     remaining = re.sub(r'(\d+?)(?=(\d{2})+$)', r'\1,', remaining)
     return f"{remaining},{last_three}"
 
 def amount_to_words(number):
-    """Converts a number to Indian English words (Lakhs/Crores)."""
     try:
         words = num2words(int(number), lang='en_IN').title()
         return f"{words} Rupees Only"
-    except Exception:
-        return ""
+    except: return ""
 
-# --- APP INTERFACE ---
-st.title("Indian Onlyfans Earnings Calculator")
+# --- NAVIGATION ---
+st.sidebar.title("Creator Hub")
+page = st.sidebar.radio("Go to", ["Earnings Calculator", "Featured Creators"])
 
-# 1. Creator Details Section (Optional)
-st.subheader("Profile Information (Optional)")
-c1, c2 = st.columns(2)
-with c1:
-    raw_name = st.text_input("Full Name", placeholder="Default: XYZ")
-with c2:
-    raw_user = st.text_input("Platform Username", placeholder="Default: XYZ")
-
-creator_name = raw_name if raw_name.strip() != "" else "XYZ"
-creator_user = raw_user if raw_user.strip() != "" else "XYZ"
-
-# 2. Earnings Inputs
-st.divider()
-col1, col2 = st.columns(2)
-with col1:
-    subscribers = st.number_input("Total Subscribers", min_value=0, value=100, step=10)
-    sub_charge = st.number_input("Monthly Charge (₹)", min_value=0, value=290, step=10)
-with col2:
-    platform_fee = st.slider("Platform Commission (%)", 0, 50, 20)
-
-# --- CALCULATIONS ---
-gross_monthly = subscribers * sub_charge
-net_monthly = gross_monthly * (1 - (platform_fee / 100))
-annual_income = net_monthly * 12
-
-# --- UI HIGHLIGHTED BOXES ---
-st.divider()
-st.markdown("""
-<style>
-    .monthly-box { background-color: #e6f4ea; padding: 20px; border-radius: 10px; border-left: 5px solid #34a853; margin-bottom: 20px; }
-    .annual-box { background-color: #e8f0fe; padding: 20px; border-radius: 10px; border-left: 5px solid #4285f4; margin-bottom: 20px; }
-    .box-label { font-size: 14px; color: #555; font-weight: bold; margin-bottom: 5px; }
-    .box-value { font-size: 32px; color: #000; font-weight: 800; }
-    .box-words { font-size: 12px; color: #666; font-style: italic; }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown(f'<div class="monthly-box"><div class="box-label">MONTHLY NET</div><div class="box-value">₹ {format_indian_currency(net_monthly)}</div><div class="box-words">{amount_to_words(net_monthly)}</div></div>', unsafe_allow_html=True)
-st.markdown(f'<div class="annual-box"><div class="box-label">ANNUAL NET</div><div class="box-value">₹ {format_indian_currency(annual_income)}</div><div class="box-words">{amount_to_words(annual_income)}</div></div>', unsafe_allow_html=True)
-
-# --- PDF GENERATION FUNCTION ---
-def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
-    pdf = FPDF()
-    pdf.add_page()
+# ==========================================
+# PAGE 1: EARNINGS CALCULATOR
+# ==========================================
+if page == "Earnings Calculator":
+    st.title("🇮🇳 Creator Earnings Calculator")
     
-    # Header
-    pdf.set_font("Helvetica", "B", 22)
-    pdf.set_text_color(40, 40, 40)
-    pdf.cell(0, 20, "EARNINGS ESTIMATION REPORT", ln=True, align="C")
-    
-    # Profile Info
-    pdf.set_font("Helvetica", "", 12)
-    pdf.cell(0, 10, f"Creator: {name} ({user})", ln=True)
-    pdf.set_draw_color(200, 200, 200)
-    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
-    pdf.ln(10)
-    
-    # Detailed Breakdown Table
-    pdf.set_font("Helvetica", "B", 12)
-    pdf.set_fill_color(245, 245, 245)
-    pdf.cell(90, 10, "Component", border=1, fill=True)
-    pdf.cell(90, 10, "Value", border=1, fill=True, ln=True)
-    
-    pdf.set_font("Helvetica", "", 12)
-    items = [
-        ("Subscribers", f"{subs:,}"),
-        ("Subscription Price", f"Rs. {charge}"),
-        ("Platform Fee", f"{fee}%")
-    ]
-    for label, val in items:
-        pdf.cell(90, 10, label, border=1)
-        pdf.cell(90, 10, val, border=1, ln=True)
-    
-    pdf.ln(15)
+    # Creator Details Section
+    st.subheader("Profile Information (Optional)")
+    c1, c2 = st.columns(2)
+    with c1:
+        raw_name = st.text_input("Full Name", placeholder="Default: XYZ")
+    with c2:
+        raw_user = st.text_input("Platform Username", placeholder="Default: XYZ")
 
-    # --- HIGHLIGHTED PDF SECTIONS ---
-    # Monthly Highlight (Green Box)
-    pdf.set_fill_color(230, 244, 234) # Light Green
-    pdf.set_text_color(52, 168, 83)   # Green Text
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 12, "  ESTIMATED NET MONTHLY INCOME", ln=True, fill=True)
-    pdf.set_font("Helvetica", "B", 24)
-    pdf.cell(0, 18, f"  Rs. {format_indian_currency(m_net)}", ln=True, fill=True)
-    pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 10, f"  ({amount_to_words(m_net)})", ln=True, fill=True)
-    
-    pdf.ln(10)
-    
-    # Annual Highlight (Blue Box)
-    pdf.set_fill_color(232, 240, 254) # Light Blue
-    pdf.set_text_color(66, 133, 244)  # Blue Text
-    pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 12, "  ESTIMATED ANNUAL NET INCOME", ln=True, fill=True)
-    pdf.set_font("Helvetica", "B", 24)
-    pdf.cell(0, 18, f"  Rs. {format_indian_currency(y_net)}", ln=True, fill=True)
-    pdf.set_font("Helvetica", "I", 10)
-    pdf.cell(0, 10, f"  ({amount_to_words(y_net)})", ln=True, fill=True)
+    creator_name = raw_name if raw_name.strip() != "" else "XYZ"
+    creator_user = raw_user if raw_user.strip() != "" else "XYZ"
 
-    # Footer
-    pdf.set_y(-25)
-    pdf.set_font("Helvetica", "I", 8)
-    pdf.set_text_color(150, 150, 150)
-    pdf.cell(0, 10, "Generated via Indian Creator Earnings Calculator. For estimation only.", align="C")
+    # Earnings Inputs
+    st.divider()
+    col1, col2 = st.columns(2)
+    with col1:
+        subscribers = st.number_input("Total Subscribers", min_value=0, value=100)
+        sub_charge = st.number_input("Monthly Charge (₹)", min_value=0, value=290)
+    with col2:
+        platform_fee = st.slider("Platform Commission (%)", 0, 50, 20)
+
+    # Calculations
+    gross_monthly = subscribers * sub_charge
+    net_monthly = gross_monthly * (1 - (platform_fee / 100))
+    annual_income = net_monthly * 12
+
+    # UI Highlight Boxes
+    st.markdown("""
+    <style>
+        .monthly-box { background-color: #e6f4ea; padding: 20px; border-radius: 10px; border-left: 5px solid #34a853; margin-bottom: 20px; }
+        .annual-box { background-color: #e8f0fe; padding: 20px; border-radius: 10px; border-left: 5px solid #4285f4; margin-bottom: 20px; }
+        .box-label { font-size: 14px; color: #555; font-weight: bold; margin-bottom: 5px; }
+        .box-value { font-size: 32px; color: #000; font-weight: 800; }
+        .box-words { font-size: 12px; color: #666; font-style: italic; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f'<div class="monthly-box"><div class="box-label">MONTHLY NET</div><div class="box-value">₹ {format_indian_currency(net_monthly)}</div><div class="box-words">{amount_to_words(net_monthly)}</div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="annual-box"><div class="box-label">ANNUAL NET</div><div class="box-value">₹ {format_indian_currency(annual_income)}</div><div class="box-words">{amount_to_words(annual_income)}</div></div>', unsafe_allow_html=True)
+
+    # PDF Logic (Simplified for brevity)
+    def generate_pdf_bytes(name, user, m_net, y_net):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Helvetica", "B", 20)
+        pdf.cell(0, 20, "EARNINGS REPORT", ln=True, align="C")
+        pdf.set_font("Helvetica", "", 12)
+        pdf.cell(0, 10, f"Creator: {name} ({user})", ln=True)
+        pdf.ln(10)
+        # Monthly
+        pdf.set_fill_color(230, 244, 234)
+        pdf.cell(0, 20, f" Monthly: Rs. {format_indian_currency(m_net)}", fill=True, ln=True)
+        # Annual
+        pdf.set_fill_color(232, 240, 254)
+        pdf.cell(0, 20, f" Annual: Rs. {format_indian_currency(y_net)}", fill=True, ln=True)
+        return bytes(pdf.output())
+
+    if st.button("Prepare PDF"):
+        st.session_state['pdf_report'] = generate_pdf_bytes(creator_name, creator_user, net_monthly, annual_income)
+        st.success("Report Ready!")
+
+    if 'pdf_report' in st.session_state:
+        st.download_button("Download PDF", st.session_state['pdf_report'], f"{creator_name}_Earnings.pdf")
+
+# ==========================================
+# PAGE 2: FEATURED CREATORS (Turso DB)
+# ==========================================
+elif page == "Featured Creators":
+    st.title("🌟 Featured Indian Creators")
+    st.write("Want to get listed and boost your reach? Contact us for pricing!")
     
-    return bytes(pdf.output())
+    db = get_db_client()
 
-# --- DOWNLOAD LOGIC ---
-st.divider()
-if st.button("Prepare Professional PDF Report"):
-    with st.spinner("Styling your Report..."):
-        pdf_data = generate_pdf_bytes(creator_name, creator_user, subscribers, sub_charge, platform_fee, net_monthly, annual_income)
-        st.session_state['pdf_report'] = pdf_data
-        st.success("✅ Your high-visibility report is ready!")
+    # Admin: Add New Creator
+    with st.expander("➕ Add Featured Creator (Admin Only)"):
+        new_name = st.text_input("Name")
+        new_subs = st.text_input("Followers (e.g. 1.2M)")
+        new_link = st.text_input("Insta Link")
+        if st.button("Save to Database"):
+            if new_name and new_link:
+                db.execute("INSERT INTO featured_creators (name, subs, insta_link) VALUES (?, ?, ?)", 
+                           (new_name, new_subs, new_link))
+                st.success(f"Successfully listed {new_name}!")
+                st.rerun()
 
-if 'pdf_report' in st.session_state:
-    st.download_button(label="📩 Download High-Visibility PDF", data=st.session_state['pdf_report'], file_name=f"{creator_name}_Earnings_Statement.pdf", mime="application/pdf")
+    st.divider()
+
+    # Fetch and Display Creators
+    res = db.execute("SELECT name, subs, insta_link FROM featured_creators WHERE is_active = 1 ORDER BY id DESC")
+    
+    for row in res.rows:
+        with st.container():
+            c_info, c_action = st.columns([3, 1])
+            with c_info:
+                st.subheader(row[0])
+                st.write(f"📊 {row[1]} Followers")
+            with c_action:
+                st.link_button("Profile", row[2])
+            st.divider()
+
+    st.info("💎 **Boost Your Visibility:** Contact `jktechservices@ybl` to be featured on this page.")
