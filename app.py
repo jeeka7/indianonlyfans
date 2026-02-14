@@ -27,7 +27,7 @@ def amount_to_words(number):
 
 # --- APP INTERFACE ---
 st.title("🇮🇳 Creator Earnings Calculator")
-st.markdown("Calculate potential earnings with Indian numbering and automated reports.")
+st.markdown("Professional revenue estimation with high-visibility financial reporting.")
 
 # 1. Creator Details Section (Optional)
 st.subheader("Profile Information (Optional)")
@@ -37,7 +37,6 @@ with c1:
 with c2:
     raw_user = st.text_input("Platform Username", placeholder="Default: XYZ")
 
-# Handling Defaults
 creator_name = raw_name if raw_name.strip() != "" else "XYZ"
 creator_user = raw_user if raw_user.strip() != "" else "XYZ"
 
@@ -55,20 +54,49 @@ gross_monthly = subscribers * sub_charge
 net_monthly = gross_monthly * (1 - (platform_fee / 100))
 annual_income = net_monthly * 12
 
-# --- DISPLAY METRICS ---
+# --- HIGHLIGHTED RESULTS SECTION ---
 st.divider()
-st.metric(
-    label="📊 ESTIMATED ANNUAL NET INCOME", 
-    value=f"₹{format_indian_currency(annual_income)}"
-)
-st.info(f"**In Words:** {amount_to_words(annual_income)}")
 
-m1, m2 = st.columns(2)
-with m1:
-    st.metric("Gross Monthly", f"₹{format_indian_currency(gross_monthly)}")
-with m2:
-    st.metric("Net Monthly", f"₹{format_indian_currency(net_monthly)}")
-    st.caption(f"({amount_to_words(net_monthly)})")
+# Custom CSS for the colored boxes
+st.markdown("""
+<style>
+    .monthly-box {
+        background-color: #e6f4ea;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #34a853;
+        margin-bottom: 20px;
+    }
+    .annual-box {
+        background-color: #e8f0fe;
+        padding: 20px;
+        border-radius: 10px;
+        border-left: 5px solid #4285f4;
+        margin-bottom: 20px;
+    }
+    .box-label { font-size: 14px; color: #555; font-weight: bold; margin-bottom: 5px; }
+    .box-value { font-size: 32px; color: #000; font-weight: 800; }
+    .box-words { font-size: 12px; color: #666; font-style: italic; }
+</style>
+""", unsafe_allow_html=True)
+
+# Monthly Highlight (Green)
+st.markdown(f"""
+<div class="monthly-box">
+    <div class="box-label">ESTIMATED NET MONTHLY INCOME</div>
+    <div class="box-value">₹ {format_indian_currency(net_monthly)}</div>
+    <div class="box-words">{amount_to_words(net_monthly)}</div>
+</div>
+""", unsafe_allow_html=True)
+
+# Annual Highlight (Blue)
+st.markdown(f"""
+<div class="annual-box">
+    <div class="box-label">ESTIMATED ANNUAL NET INCOME</div>
+    <div class="box-value">₹ {format_indian_currency(annual_income)}</div>
+    <div class="box-words">{amount_to_words(annual_income)}</div>
+</div>
+""", unsafe_allow_html=True)
 
 # --- PDF GENERATION FUNCTION ---
 def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
@@ -87,7 +115,7 @@ def generate_pdf_bytes(name, user, subs, charge, fee, m_net, y_net):
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(10)
     
-    # Data Table
+    # Table Data
     pdf.set_font("Helvetica", "B", 11)
     pdf.set_fill_color(240, 240, 240)
     pdf.cell(90, 10, "Description", border=1, fill=True)
