@@ -173,4 +173,4 @@ elif page == "Support Development":
     except:
         st.warning("QR Code image (phonepeQR.jpg) not found in repository.")
 
-    st.info(f"💎 **Business Inquiries:** For featuring requests or custom app development, reach out at `{upi_id}`.")
+st.link_button("Donate via Link", "https://link.payoneer.com/Token?t=8A78697FD8264702AA30AB97F447B81F&src=pl")
