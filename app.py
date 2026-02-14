@@ -26,7 +26,7 @@ def amount_to_words(number):
         return ""
 
 # --- APP INTERFACE ---
-st.title("🇮🇳 Creator Earnings Calculator")
+st.title("Indian Onlyfans Earnings Calculator")
 
 # 1. Creator Details Section (Optional)
 st.subheader("Profile Information (Optional)")
